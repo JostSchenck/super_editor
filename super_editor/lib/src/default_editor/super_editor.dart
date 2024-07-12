@@ -1,5 +1,6 @@
 import 'package:attributed_text/attributed_text.dart';
-import 'package:flutter/foundation.dart' show ValueListenable, defaultTargetPlatform;
+import 'package:flutter/foundation.dart'
+    show ValueListenable, defaultTargetPlatform;
 import 'package:flutter/material.dart' hide SelectableText;
 import 'package:flutter/services.dart';
 import 'package:follow_the_leader/follow_the_leader.dart';
@@ -107,6 +108,7 @@ class SuperEditor extends StatefulWidget {
     required this.composer,
     this.scrollController,
     this.documentLayoutKey,
+    this.documentLayoutBuilder,
     Stylesheet? stylesheet,
     this.customStylePhases = const [],
     List<ComponentBuilder>? componentBuilders,
@@ -136,7 +138,11 @@ class SuperEditor extends StatefulWidget {
         selectionStyles = selectionStyle ?? defaultSelectionStyle,
         componentBuilders = componentBuilders != null
             ? [...componentBuilders, const UnknownComponentBuilder()]
-            : [...defaultComponentBuilders, TaskComponentBuilder(editor), const UnknownComponentBuilder()],
+            : [
+                ...defaultComponentBuilders,
+                TaskComponentBuilder(editor),
+                const UnknownComponentBuilder()
+              ],
         super(key: key);
 
   /// [FocusNode] for the entire `SuperEditor`.
@@ -168,6 +174,10 @@ class SuperEditor extends StatefulWidget {
   /// This key can be used to lookup visual components in the document
   /// layout within this `SuperEditor`.
   final GlobalKey? documentLayoutKey;
+
+  /// A builder function for creating a custom DocumentLayout object. If null,
+  /// a `SingleColumnDocumentLayout` will be created.
+  final DocumentLayoutBuilder? documentLayoutBuilder;
 
   /// Style rules applied through the document presentation.
   final Stylesheet stylesheet;
@@ -291,19 +301,23 @@ class SuperEditor extends StatefulWidget {
   final MagnifierAndToolbarController? overlayController;
 
   /// Color of the text selection drag handles on Android.
-  @Deprecated("To configure handle color, surround SuperEditor with a SuperEditorAndroidControlsScope, instead")
+  @Deprecated(
+      "To configure handle color, surround SuperEditor with a SuperEditorAndroidControlsScope, instead")
   final Color? androidHandleColor;
 
   /// Builder that creates a floating toolbar when running on Android.
-  @Deprecated("To configure a toolbar builder, surround SuperEditor with a SuperEditorAndroidControlsScope, instead")
+  @Deprecated(
+      "To configure a toolbar builder, surround SuperEditor with a SuperEditorAndroidControlsScope, instead")
   final WidgetBuilder? androidToolbarBuilder;
 
   /// Color of the text selection drag handles on iOS.
-  @Deprecated("To configure handle color, surround SuperEditor with a SuperEditorIosControlsScope, instead")
+  @Deprecated(
+      "To configure handle color, surround SuperEditor with a SuperEditorIosControlsScope, instead")
   final Color? iOSHandleColor;
 
   /// Builder that creates a floating toolbar when running on iOS.
-  @Deprecated("To configure a toolbar builder, surround SuperEditor with a SuperEditorIosControlsScope, instead")
+  @Deprecated(
+      "To configure a toolbar builder, surround SuperEditor with a SuperEditorIosControlsScope, instead")
   final WidgetBuilder? iOSToolbarBuilder;
 
   /// Creates a clipper that applies to overlay controls, like drag
@@ -315,7 +329,8 @@ class SuperEditor extends StatefulWidget {
   /// (probably the entire screen).
   @Deprecated(
       "To configure an overlay clipper, surround SuperEditor with a SuperEditorIosControlsScope and/or a SuperEditorAndroidControlsScope")
-  final CustomClipper<Rect> Function(BuildContext overlayContext)? createOverlayControlsClipper;
+  final CustomClipper<Rect> Function(BuildContext overlayContext)?
+      createOverlayControlsClipper;
 
   /// Plugins that add sets of behaviors to the editing experience.
   final Set<SuperEditorPlugin> plugins;
@@ -336,7 +351,8 @@ class SuperEditorState extends State<SuperEditor> {
   final _documentLayoutLink = LayerLink();
   SingleColumnLayoutPresenter? _docLayoutPresenter;
   late SingleColumnStylesheetStyler _docStylesheetStyler;
-  late SingleColumnLayoutCustomComponentStyler _docLayoutPerComponentBlockStyler;
+  late SingleColumnLayoutCustomComponentStyler
+      _docLayoutPerComponentBlockStyler;
   late SingleColumnLayoutSelectionStyler _docLayoutSelectionStyler;
 
   @visibleForTesting
@@ -396,11 +412,13 @@ class SuperEditorState extends State<SuperEditor> {
 
     _selectionLinks = widget.selectionLayerLinks ?? SelectionLayerLinks();
 
-    _softwareKeyboardController = widget.softwareKeyboardController ?? SoftwareKeyboardController();
+    _softwareKeyboardController =
+        widget.softwareKeyboardController ?? SoftwareKeyboardController();
 
     widget.editor.context.put(
       Editor.layoutKey,
-      DocumentLayoutEditable(() => _docLayoutKey.currentState as DocumentLayout),
+      DocumentLayoutEditable(
+          () => _docLayoutKey.currentState as DocumentLayout),
     );
 
     _createEditContext();
@@ -412,7 +430,8 @@ class SuperEditorState extends State<SuperEditor> {
     super.didUpdateWidget(oldWidget);
 
     if (widget.focusNode != oldWidget.focusNode) {
-      _focusNode = (widget.focusNode ?? FocusNode())..addListener(_onFocusChange);
+      _focusNode = (widget.focusNode ?? FocusNode())
+        ..addListener(_onFocusChange);
     }
 
     if (widget.documentLayoutKey != oldWidget.documentLayoutKey) {
@@ -435,7 +454,8 @@ class SuperEditorState extends State<SuperEditor> {
       oldWidget.editor.context.remove(Editor.layoutKey);
       widget.editor.context.put(
         Editor.layoutKey,
-        DocumentLayoutEditable(() => _docLayoutKey.currentState as DocumentLayout),
+        DocumentLayoutEditable(
+            () => _docLayoutKey.currentState as DocumentLayout),
       );
 
       _createEditContext();
@@ -453,8 +473,10 @@ class SuperEditorState extends State<SuperEditor> {
       _scrollController = widget.scrollController ?? ScrollController();
     }
 
-    if (widget.softwareKeyboardController != oldWidget.softwareKeyboardController) {
-      _softwareKeyboardController = widget.softwareKeyboardController ?? SoftwareKeyboardController();
+    if (widget.softwareKeyboardController !=
+        oldWidget.softwareKeyboardController) {
+      _softwareKeyboardController =
+          widget.softwareKeyboardController ?? SoftwareKeyboardController();
     }
 
     _recomputeIfLayoutShouldShowCaret();
@@ -482,7 +504,8 @@ class SuperEditorState extends State<SuperEditor> {
     if (_scroller != null) {
       _scroller!.dispose();
     }
-    _scroller = DocumentScroller()..addScrollChangeListener(_scrollChangeSignal.notifyListeners);
+    _scroller = DocumentScroller()
+      ..addScrollChangeListener(_scrollChangeSignal.notifyListeners);
 
     editContext = SuperEditorContext(
       editor: widget.editor,
@@ -494,7 +517,8 @@ class SuperEditorState extends State<SuperEditor> {
         editor: widget.editor,
         document: widget.document,
         composer: _composer,
-        documentLayoutResolver: () => _docLayoutKey.currentState as DocumentLayout,
+        documentLayoutResolver: () =>
+            _docLayoutKey.currentState as DocumentLayout,
       ),
     );
 
@@ -515,9 +539,11 @@ class SuperEditorState extends State<SuperEditor> {
 
     final document = editContext.document;
 
-    _docStylesheetStyler = SingleColumnStylesheetStyler(stylesheet: widget.stylesheet);
+    _docStylesheetStyler =
+        SingleColumnStylesheetStyler(stylesheet: widget.stylesheet);
 
-    _docLayoutPerComponentBlockStyler = SingleColumnLayoutCustomComponentStyler();
+    _docLayoutPerComponentBlockStyler =
+        SingleColumnLayoutCustomComponentStyler();
 
     _docLayoutSelectionStyler = SingleColumnLayoutSelectionStyler(
       document: document,
@@ -526,9 +552,10 @@ class SuperEditorState extends State<SuperEditor> {
       selectedTextColorStrategy: widget.stylesheet.selectedTextColorStrategy,
     );
 
-    final showComposingUnderline = defaultTargetPlatform == TargetPlatform.macOS ||
-        defaultTargetPlatform == TargetPlatform.iOS ||
-        defaultTargetPlatform == TargetPlatform.android;
+    final showComposingUnderline =
+        defaultTargetPlatform == TargetPlatform.macOS ||
+            defaultTargetPlatform == TargetPlatform.iOS ||
+            defaultTargetPlatform == TargetPlatform.android;
 
     _docLayoutPresenter = SingleColumnLayoutPresenter(
       document: document,
@@ -558,7 +585,8 @@ class SuperEditorState extends State<SuperEditor> {
   }
 
   void _recomputeIfLayoutShouldShowCaret() {
-    _docLayoutSelectionStyler.shouldDocumentShowCaret = _focusNode.hasFocus && gestureMode == DocumentGestureMode.mouse;
+    _docLayoutSelectionStyler.shouldDocumentShowCaret =
+        _focusNode.hasFocus && gestureMode == DocumentGestureMode.mouse;
   }
 
   @visibleForTesting
@@ -586,7 +614,9 @@ class SuperEditorState extends State<SuperEditor> {
   /// Returns the key handlers that respond to keyboard events within [SuperEditor].
   List<DocumentKeyboardAction> get _keyboardActions =>
       widget.keyboardActions ??
-      (inputSource == TextInputSource.ime ? defaultImeKeyboardActions : defaultKeyboardActions);
+      (inputSource == TextInputSource.ime
+          ? defaultImeKeyboardActions
+          : defaultKeyboardActions);
 
   void _openSoftareKeyboard() {
     if (!_softwareKeyboardController.hasDelegate) {
@@ -611,17 +641,23 @@ class SuperEditorState extends State<SuperEditor> {
             document: widget.document,
             selection: _composer.selectionNotifier,
             isDocumentLayoutAvailable: () =>
-                (_docLayoutKey.currentContext?.findRenderObject() as RenderBox?)?.hasSize == true,
+                (_docLayoutKey.currentContext?.findRenderObject() as RenderBox?)
+                    ?.hasSize ==
+                true,
             getDocumentLayout: () => editContext.documentLayout,
-            placeCaretAtEndOfDocumentOnGainFocus: widget.selectionPolicies.placeCaretAtEndOfDocumentOnGainFocus,
-            restorePreviousSelectionOnGainFocus: widget.selectionPolicies.restorePreviousSelectionOnGainFocus,
-            clearSelectionWhenEditorLosesFocus: widget.selectionPolicies.clearSelectionWhenEditorLosesFocus,
+            placeCaretAtEndOfDocumentOnGainFocus:
+                widget.selectionPolicies.placeCaretAtEndOfDocumentOnGainFocus,
+            restorePreviousSelectionOnGainFocus:
+                widget.selectionPolicies.restorePreviousSelectionOnGainFocus,
+            clearSelectionWhenEditorLosesFocus:
+                widget.selectionPolicies.clearSelectionWhenEditorLosesFocus,
             child: _buildTextInputSystem(
               child: _buildPlatformSpecificViewportDecorations(
                 controlsScopeContext,
                 child: DocumentScaffold(
                   documentLayoutLink: _documentLayoutLink,
                   documentLayoutKey: _docLayoutKey,
+                  documentLayoutBuilder: widget.documentLayoutBuilder,
                   gestureBuilder: _buildGestureInteractor,
                   scrollController: _scrollController,
                   autoScrollController: _autoScrollController,
@@ -630,7 +666,8 @@ class SuperEditorState extends State<SuperEditor> {
                   componentBuilders: widget.componentBuilders,
                   underlays: [
                     // Add all underlays that the app wants.
-                    for (final underlayBuilder in widget.documentUnderlayBuilders) //
+                    for (final underlayBuilder
+                        in widget.documentUnderlayBuilders) //
                       (context) => underlayBuilder.build(context, editContext),
                   ],
                   overlays: [
@@ -644,7 +681,8 @@ class SuperEditorState extends State<SuperEditor> {
                       ).build(context, editContext);
                     },
                     // Add all overlays that the app wants.
-                    for (final overlayBuilder in widget.documentOverlayBuilders) //
+                    for (final overlayBuilder
+                        in widget.documentOverlayBuilders) //
                       (context) => overlayBuilder.build(context, editContext),
                   ],
                   debugPaint: widget.debugPaint,
@@ -710,8 +748,10 @@ class SuperEditorState extends State<SuperEditor> {
           focusNode: _focusNode,
           autofocus: widget.autofocus,
           editContext: editContext,
-          clearSelectionWhenEditorLosesFocus: widget.selectionPolicies.clearSelectionWhenEditorLosesFocus,
-          clearSelectionWhenImeConnectionCloses: widget.selectionPolicies.clearSelectionWhenImeConnectionCloses,
+          clearSelectionWhenEditorLosesFocus:
+              widget.selectionPolicies.clearSelectionWhenEditorLosesFocus,
+          clearSelectionWhenImeConnectionCloses:
+              widget.selectionPolicies.clearSelectionWhenImeConnectionCloses,
           softwareKeyboardController: _softwareKeyboardController,
           imePolicies: widget.imePolicies,
           imeConfiguration: widget.imeConfiguration ??
@@ -724,7 +764,8 @@ class SuperEditorState extends State<SuperEditor> {
               ...plugin.keyboardActions,
             ..._keyboardActions,
           ],
-          selectorHandlers: widget.selectorHandlers ?? defaultEditorSelectorHandlers,
+          selectorHandlers:
+              widget.selectorHandlers ?? defaultEditorSelectorHandlers,
           child: child,
         );
     }
@@ -740,7 +781,9 @@ class SuperEditorState extends State<SuperEditor> {
       case DocumentGestureMode.iOS:
         return SuperEditorIosToolbarOverlayManager(
           tapRegionGroupId: widget.tapRegionGroupId,
-          defaultToolbarBuilder: (overlayContext, mobileToolbarKey, focalPoint) => defaultIosEditorToolbarBuilder(
+          defaultToolbarBuilder:
+              (overlayContext, mobileToolbarKey, focalPoint) =>
+                  defaultIosEditorToolbarBuilder(
             overlayContext,
             mobileToolbarKey,
             focalPoint,
@@ -751,7 +794,8 @@ class SuperEditorState extends State<SuperEditor> {
             child: EditorFloatingCursor(
               editor: widget.editor,
               document: widget.document,
-              getDocumentLayout: () => _docLayoutKey.currentState as DocumentLayout,
+              getDocumentLayout: () =>
+                  _docLayoutKey.currentState as DocumentLayout,
               selection: widget.composer.selectionNotifier,
               scrollChangeSignal: _scrollChangeSignal,
               child: child,
@@ -765,11 +809,14 @@ class SuperEditorState extends State<SuperEditor> {
           getDocumentLayout: () => _docLayoutKey.currentState as DocumentLayout,
           selection: _composer.selectionNotifier,
           setSelection: (newSelection) => editContext.editor.execute([
-            ChangeSelectionRequest(newSelection, SelectionChangeType.pushCaret, SelectionReason.userInteraction),
+            ChangeSelectionRequest(newSelection, SelectionChangeType.pushCaret,
+                SelectionReason.userInteraction),
           ]),
           scrollChangeSignal: _scrollChangeSignal,
           dragHandleAutoScroller: _dragHandleAutoScroller,
-          defaultToolbarBuilder: (overlayContext, mobileToolbarKey, focalPoint) => defaultAndroidEditorToolbarBuilder(
+          defaultToolbarBuilder:
+              (overlayContext, mobileToolbarKey, focalPoint) =>
+                  defaultAndroidEditorToolbarBuilder(
             overlayContext,
             mobileToolbarKey,
             editContext.commonOps,
@@ -980,7 +1027,8 @@ class _SelectionLeadersDocumentLayerBuilder implements SuperEditorLayerBuilder {
   final bool showDebugLeaderBounds;
 
   @override
-  ContentLayerWidget build(BuildContext context, SuperEditorContext editContext) {
+  ContentLayerWidget build(
+      BuildContext context, SuperEditorContext editContext) {
     return SelectionLeadersDocumentLayer(
       document: editContext.document,
       selection: editContext.composer.selectionNotifier,
@@ -1077,10 +1125,14 @@ class SuperEditorSelectionPolicies {
       identical(this, other) ||
       other is SuperEditorSelectionPolicies &&
           runtimeType == other.runtimeType &&
-          placeCaretAtEndOfDocumentOnGainFocus == other.placeCaretAtEndOfDocumentOnGainFocus &&
-          restorePreviousSelectionOnGainFocus == other.restorePreviousSelectionOnGainFocus &&
-          clearSelectionWhenEditorLosesFocus == other.clearSelectionWhenEditorLosesFocus &&
-          clearSelectionWhenImeConnectionCloses == other.clearSelectionWhenImeConnectionCloses;
+          placeCaretAtEndOfDocumentOnGainFocus ==
+              other.placeCaretAtEndOfDocumentOnGainFocus &&
+          restorePreviousSelectionOnGainFocus ==
+              other.restorePreviousSelectionOnGainFocus &&
+          clearSelectionWhenEditorLosesFocus ==
+              other.clearSelectionWhenEditorLosesFocus &&
+          clearSelectionWhenImeConnectionCloses ==
+              other.clearSelectionWhenImeConnectionCloses;
 
   @override
   int get hashCode =>
@@ -1093,7 +1145,8 @@ class SuperEditorSelectionPolicies {
 /// Builds widgets that are displayed at the same position and size as
 /// the document layout within a [SuperEditor].
 abstract class SuperEditorLayerBuilder {
-  ContentLayerWidget build(BuildContext context, SuperEditorContext editContext);
+  ContentLayerWidget build(
+      BuildContext context, SuperEditorContext editContext);
 }
 
 /// A [SuperEditorLayerBuilder] that's implemented with a given function, so
@@ -1101,10 +1154,13 @@ abstract class SuperEditorLayerBuilder {
 class FunctionalSuperEditorLayerBuilder implements SuperEditorLayerBuilder {
   const FunctionalSuperEditorLayerBuilder(this._delegate);
 
-  final ContentLayerWidget Function(BuildContext context, SuperEditorContext editContext) _delegate;
+  final ContentLayerWidget Function(
+      BuildContext context, SuperEditorContext editContext) _delegate;
 
   @override
-  ContentLayerWidget build(BuildContext context, SuperEditorContext editContext) => _delegate(context, editContext);
+  ContentLayerWidget build(
+          BuildContext context, SuperEditorContext editContext) =>
+      _delegate(context, editContext);
 }
 
 /// A [SuperEditorLayerBuilder] that paints a caret at the primary selection extent
@@ -1143,7 +1199,8 @@ class DefaultCaretOverlayBuilder implements SuperEditorLayerBuilder {
   final BlinkTimingMode blinkTimingMode;
 
   @override
-  ContentLayerWidget build(BuildContext context, SuperEditorContext editContext) {
+  ContentLayerWidget build(
+      BuildContext context, SuperEditorContext editContext) {
     return CaretDocumentOverlay(
       composer: editContext.composer,
       documentLayoutResolver: () => editContext.documentLayout,
@@ -1322,13 +1379,20 @@ const defaultEditorSelectorHandlers = <String, SuperEditorSelectorHandler>{
   MacOsSelectors.moveUpAndModifySelection: moveUpAndModifySelection,
   MacOsSelectors.moveDownAndModifySelection: moveDownAndModifySelection,
   MacOsSelectors.moveWordLeftAndModifySelection: moveWordLeftAndModifySelection,
-  MacOsSelectors.moveWordRightAndModifySelection: moveWordRightAndModifySelection,
-  MacOsSelectors.moveToLeftEndOfLineAndModifySelection: moveToLeftEndOfLineAndModifySelection,
-  MacOsSelectors.moveToRightEndOfLineAndModifySelection: moveToRightEndOfLineAndModifySelection,
-  MacOsSelectors.moveParagraphBackwardAndModifySelection: moveParagraphBackwardAndModifySelection,
-  MacOsSelectors.moveParagraphForwardAndModifySelection: moveParagraphForwardAndModifySelection,
-  MacOsSelectors.moveToBeginningOfDocumentAndModifySelection: moveToBeginningOfDocumentAndModifySelection,
-  MacOsSelectors.moveToEndOfDocumentAndModifySelection: moveToEndOfDocumentAndModifySelection,
+  MacOsSelectors.moveWordRightAndModifySelection:
+      moveWordRightAndModifySelection,
+  MacOsSelectors.moveToLeftEndOfLineAndModifySelection:
+      moveToLeftEndOfLineAndModifySelection,
+  MacOsSelectors.moveToRightEndOfLineAndModifySelection:
+      moveToRightEndOfLineAndModifySelection,
+  MacOsSelectors.moveParagraphBackwardAndModifySelection:
+      moveParagraphBackwardAndModifySelection,
+  MacOsSelectors.moveParagraphForwardAndModifySelection:
+      moveParagraphForwardAndModifySelection,
+  MacOsSelectors.moveToBeginningOfDocumentAndModifySelection:
+      moveToBeginningOfDocumentAndModifySelection,
+  MacOsSelectors.moveToEndOfDocumentAndModifySelection:
+      moveToEndOfDocumentAndModifySelection,
 
   // Insertion.
   MacOsSelectors.insertTab: indentListItem,
@@ -1472,7 +1536,8 @@ final defaultStylesheet = Stylesheet(
   inlineTextStyler: defaultInlineTextStyler,
 );
 
-TextStyle defaultInlineTextStyler(Set<Attribution> attributions, TextStyle existingStyle) {
+TextStyle defaultInlineTextStyler(
+    Set<Attribution> attributions, TextStyle existingStyle) {
   return existingStyle.merge(defaultStyleBuilder(attributions));
 }
 
@@ -1493,13 +1558,15 @@ TextStyle defaultStyleBuilder(Set<Attribution> attributions) {
       newStyle = newStyle.copyWith(
         decoration: newStyle.decoration == null
             ? TextDecoration.underline
-            : TextDecoration.combine([TextDecoration.underline, newStyle.decoration!]),
+            : TextDecoration.combine(
+                [TextDecoration.underline, newStyle.decoration!]),
       );
     } else if (attribution == strikethroughAttribution) {
       newStyle = newStyle.copyWith(
         decoration: newStyle.decoration == null
             ? TextDecoration.lineThrough
-            : TextDecoration.combine([TextDecoration.lineThrough, newStyle.decoration!]),
+            : TextDecoration.combine(
+                [TextDecoration.lineThrough, newStyle.decoration!]),
       );
     } else if (attribution == superscriptAttribution) {
       newStyle = newStyle.copyWith(
@@ -1540,9 +1607,11 @@ const defaultSelectionStyle = SelectionStyles(
   selectionColor: Color(0xFFACCEF7),
 );
 
-typedef SuperEditorContentTapDelegateFactory = ContentTapDelegate Function(SuperEditorContext editContext);
+typedef SuperEditorContentTapDelegateFactory = ContentTapDelegate Function(
+    SuperEditorContext editContext);
 
-SuperEditorLaunchLinkTapHandler superEditorLaunchLinkTapHandlerFactory(SuperEditorContext editContext) =>
+SuperEditorLaunchLinkTapHandler superEditorLaunchLinkTapHandlerFactory(
+        SuperEditorContext editContext) =>
     SuperEditorLaunchLinkTapHandler(editContext.document, editContext.composer);
 
 /// A [ContentTapDelegate] that opens links when the user taps text with
@@ -1602,12 +1671,13 @@ class SuperEditorLaunchLinkTapHandler extends ContentTapDelegate {
 
     final textNode = document.getNodeById(position.nodeId);
     if (textNode is! TextNode) {
-      editorGesturesLog
-          .shout("Received a report of a tap on a TextNodePosition, but the node with that ID is a: $textNode");
+      editorGesturesLog.shout(
+          "Received a report of a tap on a TextNodePosition, but the node with that ID is a: $textNode");
       return null;
     }
 
-    final tappedAttributions = textNode.text.getAllAttributionsAt(nodePosition.offset);
+    final tappedAttributions =
+        textNode.text.getAllAttributionsAt(nodePosition.offset);
     for (final tappedAttribution in tappedAttributions) {
       if (tappedAttribution is LinkAttribution) {
         return tappedAttribution.uri;

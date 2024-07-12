@@ -7,6 +7,14 @@ import 'package:super_editor/src/infrastructure/content_layers.dart';
 import 'package:super_editor/src/infrastructure/documents/document_scroller.dart';
 import 'package:super_editor/src/infrastructure/viewport_size_reporting.dart';
 
+typedef DocumentLayoutBuilder = Widget Function({
+  Key? key,
+  required SingleColumnLayoutPresenter presenter,
+  List<ComponentBuilder> componentBuilders,
+  VoidCallback? onBuildScheduled,
+  bool showDebugPaint,
+});
+
 /// A scaffold that combines pieces to create a scrolling single-column document, with
 /// gestures placed beneath the document.
 ///
@@ -18,6 +26,7 @@ class DocumentScaffold<ContextType> extends StatefulWidget {
     required this.documentLayoutLink,
     required this.documentLayoutKey,
     required this.gestureBuilder,
+    this.documentLayoutBuilder,
     this.scrollController,
     required this.autoScrollController,
     required this.scroller,
@@ -33,6 +42,10 @@ class DocumentScaffold<ContextType> extends StatefulWidget {
 
   /// [GlobalKey] that's attached to the document layout.
   final GlobalKey documentLayoutKey;
+
+  /// A builder function for creating a custom DocumentLayout object. If null,
+  /// a `SingleColumnDocumentLayout` will be created.
+  final DocumentLayoutBuilder? documentLayoutBuilder;
 
   /// Builder that creates a gesture interaction widget, which is displayed
   /// beneath the document, at the same size as the viewport.
@@ -104,7 +117,8 @@ class _DocumentScaffoldState extends State<DocumentScaffold> {
     );
   }
 
-  final _contentConstraints = ValueNotifier<BoxConstraints>(const BoxConstraints());
+  final _contentConstraints =
+      ValueNotifier<BoxConstraints>(const BoxConstraints());
 
   /// Builds the widget tree that handles user gesture interaction
   /// with the document, e.g., mouse input on desktop, or touch input
@@ -140,13 +154,21 @@ class _DocumentScaffoldState extends State<DocumentScaffold> {
       child: CompositedTransformTarget(
         link: widget.documentLayoutLink,
         child: ContentLayers(
-          content: (onBuildScheduled) => SingleColumnDocumentLayout(
-            key: widget.documentLayoutKey,
-            presenter: widget.presenter,
-            componentBuilders: widget.componentBuilders,
-            onBuildScheduled: onBuildScheduled,
-            showDebugPaint: widget.debugPaint.layout,
-          ),
+          content: (onBuildScheduled) => widget.documentLayoutBuilder == null
+              ? SingleColumnDocumentLayout(
+                  key: widget.documentLayoutKey,
+                  presenter: widget.presenter,
+                  componentBuilders: widget.componentBuilders,
+                  onBuildScheduled: onBuildScheduled,
+                  showDebugPaint: widget.debugPaint.layout,
+                )
+              : widget.documentLayoutBuilder!(
+                  key: widget.documentLayoutKey,
+                  presenter: widget.presenter,
+                  componentBuilders: widget.componentBuilders,
+                  onBuildScheduled: onBuildScheduled,
+                  showDebugPaint: widget.debugPaint.layout,
+                ),
           underlays: widget.underlays,
           overlays: widget.overlays,
         ),
