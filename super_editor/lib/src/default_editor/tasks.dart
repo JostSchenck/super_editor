@@ -1,7 +1,24 @@
+import 'package:attributed_text/attributed_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:super_editor/src/core/document.dart';
+import 'package:super_editor/src/core/document_composer.dart';
+import 'package:super_editor/src/core/document_layout.dart';
+import 'package:super_editor/src/core/document_selection.dart';
+import 'package:super_editor/src/core/edit_context.dart';
+import 'package:super_editor/src/core/editor.dart';
+import 'package:super_editor/src/core/styles.dart';
 import 'package:super_editor/src/default_editor/blocks/indentation.dart';
-import 'package:super_editor/super_editor.dart';
+import 'package:super_editor/src/default_editor/multi_node_editing.dart';
+import 'package:super_editor/src/default_editor/paragraph.dart';
+import 'package:super_editor/src/default_editor/text.dart';
+import 'package:super_editor/src/infrastructure/_logging.dart';
+import 'package:super_editor/src/infrastructure/attributed_text_styles.dart';
+import 'package:super_editor/src/infrastructure/composable_text.dart';
+import 'package:super_editor/src/infrastructure/keyboard.dart';
+
+import 'attributions.dart';
+import 'layout_single_column/layout_single_column.dart';
 
 /// This file includes everything needed to add the concept of a task
 /// to Super Editor. This includes:
@@ -61,6 +78,16 @@ class TaskNode extends TextNode {
   @override
   bool hasEquivalentContent(DocumentNode other) {
     return other is TaskNode && isComplete == other.isComplete && text == other.text;
+  }
+
+  @override
+  TaskNode copy() {
+    return TaskNode(
+      id: id,
+      text: text.copyText(0),
+      metadata: Map.from(metadata),
+      isComplete: isComplete,
+    );
   }
 
   @override
@@ -570,15 +597,18 @@ class ChangeTaskCompletionRequest implements EditRequest {
   int get hashCode => nodeId.hashCode ^ isComplete.hashCode;
 }
 
-class ChangeTaskCompletionCommand implements EditCommand {
+class ChangeTaskCompletionCommand extends EditCommand {
   ChangeTaskCompletionCommand({required this.nodeId, required this.isComplete});
 
   final String nodeId;
   final bool isComplete;
 
   @override
+  HistoryBehavior get historyBehavior => HistoryBehavior.undoable;
+
+  @override
   void execute(EditContext context, CommandExecutor executor) {
-    final taskNode = context.find<MutableDocument>(Editor.documentKey).getNodeById(nodeId);
+    final taskNode = context.document.getNodeById(nodeId);
     if (taskNode is! TaskNode) {
       return;
     }
@@ -614,7 +644,7 @@ class ConvertParagraphToTaskRequest implements EditRequest {
   int get hashCode => nodeId.hashCode ^ isComplete.hashCode;
 }
 
-class ConvertParagraphToTaskCommand implements EditCommand {
+class ConvertParagraphToTaskCommand extends EditCommand {
   const ConvertParagraphToTaskCommand({
     required this.nodeId,
     this.isComplete = false,
@@ -624,8 +654,11 @@ class ConvertParagraphToTaskCommand implements EditCommand {
   final bool isComplete;
 
   @override
+  HistoryBehavior get historyBehavior => HistoryBehavior.undoable;
+
+  @override
   void execute(EditContext context, CommandExecutor executor) {
-    final document = context.find<MutableDocument>(Editor.documentKey);
+    final document = context.document;
     final existingNode = document.getNodeById(nodeId);
     if (existingNode is! ParagraphNode) {
       editorOpsLog.warning(
@@ -666,7 +699,7 @@ class ConvertTaskToParagraphRequest implements EditRequest {
   int get hashCode => nodeId.hashCode ^ paragraphMetadata.hashCode;
 }
 
-class ConvertTaskToParagraphCommand implements EditCommand {
+class ConvertTaskToParagraphCommand extends EditCommand {
   const ConvertTaskToParagraphCommand({
     required this.nodeId,
     this.paragraphMetadata,
@@ -676,8 +709,11 @@ class ConvertTaskToParagraphCommand implements EditCommand {
   final Map<String, dynamic>? paragraphMetadata;
 
   @override
+  HistoryBehavior get historyBehavior => HistoryBehavior.undoable;
+
+  @override
   void execute(EditContext context, CommandExecutor executor) {
-    final document = context.find<MutableDocument>(Editor.documentKey);
+    final document = context.document;
     final node = document.getNodeById(nodeId);
     final taskNode = node as TaskNode;
     final newMetadata = Map<String, dynamic>.from(paragraphMetadata ?? {});
@@ -710,7 +746,7 @@ class SplitExistingTaskRequest implements EditRequest {
   final String? newNodeId;
 }
 
-class SplitExistingTaskCommand implements EditCommand {
+class SplitExistingTaskCommand extends EditCommand {
   const SplitExistingTaskCommand({
     required this.nodeId,
     required this.splitOffset,
@@ -722,8 +758,11 @@ class SplitExistingTaskCommand implements EditCommand {
   final String? newNodeId;
 
   @override
+  HistoryBehavior get historyBehavior => HistoryBehavior.undoable;
+
+  @override
   void execute(EditContext editContext, CommandExecutor executor) {
-    final document = editContext.find<MutableDocument>(Editor.documentKey);
+    final document = editContext.document;
     final composer = editContext.find<MutableDocumentComposer>(Editor.composerKey);
     final selection = composer.selection;
 
@@ -803,14 +842,14 @@ class IndentTaskRequest implements EditRequest {
   final String nodeId;
 }
 
-class IndentTaskCommand implements EditCommand {
+class IndentTaskCommand extends EditCommand {
   const IndentTaskCommand(this.nodeId);
 
   final String nodeId;
 
   @override
   void execute(EditContext context, CommandExecutor executor) {
-    final document = context.find<MutableDocument>(Editor.documentKey);
+    final document = context.document;
 
     final task = document.getNodeById(nodeId);
     if (task is! TaskNode) {
@@ -852,14 +891,14 @@ class UnIndentTaskRequest implements EditRequest {
   final String nodeId;
 }
 
-class UnIndentTaskCommand implements EditCommand {
+class UnIndentTaskCommand extends EditCommand {
   const UnIndentTaskCommand(this.nodeId);
 
   final String nodeId;
 
   @override
   void execute(EditContext context, CommandExecutor executor) {
-    final document = context.find<MutableDocument>(Editor.documentKey);
+    final document = context.document;
 
     final task = document.getNodeById(nodeId);
     if (task is! TaskNode) {
@@ -874,7 +913,7 @@ class UnIndentTaskCommand implements EditCommand {
 
     final subTasks = <TaskNode>[];
     int index = document.getNodeIndexById(task.id) + 1;
-    while (index < document.nodes.length) {
+    while (index < document.nodeCount) {
       final subTask = document.getNodeAt(index);
       if (subTask is! TaskNode) {
         break;
@@ -924,7 +963,7 @@ class SetTaskIndentRequest implements EditRequest {
   final int indent;
 }
 
-class SetTaskIndentCommand implements EditCommand {
+class SetTaskIndentCommand extends EditCommand {
   const SetTaskIndentCommand(this.nodeId, this.indent);
 
   final String nodeId;
@@ -932,7 +971,7 @@ class SetTaskIndentCommand implements EditCommand {
 
   @override
   void execute(EditContext context, CommandExecutor executor) {
-    final document = context.find<MutableDocument>(Editor.documentKey);
+    final document = context.document;
 
     final task = document.getNodeById(nodeId);
     if (task is! TaskNode) {
@@ -949,9 +988,9 @@ class SetTaskIndentCommand implements EditCommand {
   }
 }
 
-class UpdateSubTaskIndentAfterTaskDeletionReaction implements EditReaction {
+class UpdateSubTaskIndentAfterTaskDeletionReaction extends EditReaction {
   @override
-  void react(EditContext editorContext, RequestDispatcher requestDispatcher, List<EditEvent> changeList) {
+  void modifyContent(EditContext editorContext, RequestDispatcher requestDispatcher, List<EditEvent> changeList) {
     final didDeleteTask = changeList
         .whereType<DocumentEdit>()
         .where((edit) => edit.change is NodeRemovedEvent && (edit.change as NodeRemovedEvent).removedNode is TaskNode)
@@ -964,10 +1003,10 @@ class UpdateSubTaskIndentAfterTaskDeletionReaction implements EditReaction {
     // At least one task was deleted. We're not sure where in the document the
     // tasks were before being deleted. Therefore, we check and fix every task
     // indentation in the document.
-    final document = editorContext.find<MutableDocument>(Editor.documentKey);
+    final document = editorContext.document;
     final changeIndentationRequests = <EditRequest>[];
     int maxIndentation = 0;
-    for (int i = 0; i < document.nodes.length; i += 1) {
+    for (int i = 0; i < document.nodeCount; i += 1) {
       final node = document.getNodeAt(i);
       if (node is! TaskNode) {
         // This node isn't a task. The first task in a list of tasks

@@ -4,7 +4,6 @@ import 'package:feather/infrastructure/popovers/color_selector.dart';
 import 'package:feather/editor/editor.dart';
 import 'package:feather/infrastructure/popovers/icon_selector.dart';
 import 'package:feather/infrastructure/popovers/text_item_selector.dart';
-import 'package:feather/infrastructure/super_editor_extensions.dart';
 import 'package:feather/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
@@ -185,7 +184,7 @@ class _FormattingToolbarState extends State<FormattingToolbar> {
     ]);
 
     // Clear the field and hide the URL bar
-    _urlController!.clear();
+    _urlController!.clearTextAndSelection();
     _urlFocusNode.unfocus(disposition: UnfocusDisposition.previouslyFocusedChild);
     _linkPopoverController.close();
     setState(() {});
@@ -220,7 +219,7 @@ class _FormattingToolbarState extends State<FormattingToolbar> {
     }
 
     // Clear the field and hide the URL bar
-    _imageController!.clear();
+    _imageController!.clearTextAndSelection();
     _imageFocusNode.unfocus(disposition: UnfocusDisposition.previouslyFocusedChild);
     _imagePopoverController.close();
     setState(() {});
@@ -535,7 +534,7 @@ class _FormattingToolbarState extends State<FormattingToolbar> {
               onPressed: () {
                 setState(() {
                   _urlFocusNode.unfocus();
-                  _urlController!.clear();
+                  _urlController!.clearTextAndSelection();
                 });
               },
             ),
@@ -605,7 +604,7 @@ class _FormattingToolbarState extends State<FormattingToolbar> {
               onPressed: () {
                 setState(() {
                   _imageFocusNode.unfocus();
-                  _imageController!.clear();
+                  _imageController!.clearTextAndSelection();
                 });
               },
             ),

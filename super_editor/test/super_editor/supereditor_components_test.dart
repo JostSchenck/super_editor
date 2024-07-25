@@ -164,7 +164,7 @@ Future<void> _pumpImageTestApp(
                 width: double.infinity,
               ).toMetadata(),
             ),
-            ...longTextDoc().nodes,
+            ...longTextDoc(),
           ],
         ),
       )
@@ -209,8 +209,13 @@ class _UnkownNode extends BlockNode with ChangeNotifier {
   _UnkownNode({required this.id});
 
   @override
+  final String id;
+
+  @override
   String? copyContent(NodeSelection selection) => '';
 
   @override
-  final String id;
+  _UnkownNode copy() {
+    return _UnkownNode(id: id);
+  }
 }

@@ -84,6 +84,17 @@ class ListItemNode extends TextNode {
   }
 
   @override
+  ListItemNode copy() {
+    return ListItemNode(
+      id: id,
+      text: text.copyText(0),
+      itemType: type,
+      indent: indent,
+      metadata: Map.from(metadata),
+    );
+  }
+
+  @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       super == other &&
@@ -814,7 +825,7 @@ class IndentListItemRequest implements EditRequest {
   final String nodeId;
 }
 
-class IndentListItemCommand implements EditCommand {
+class IndentListItemCommand extends EditCommand {
   IndentListItemCommand({
     required this.nodeId,
   });
@@ -822,8 +833,11 @@ class IndentListItemCommand implements EditCommand {
   final String nodeId;
 
   @override
+  HistoryBehavior get historyBehavior => HistoryBehavior.undoable;
+
+  @override
   void execute(EditContext context, CommandExecutor executor) {
-    final document = context.find<MutableDocument>(Editor.documentKey);
+    final document = context.document;
     final node = document.getNodeById(nodeId);
     final listItem = node as ListItemNode;
     if (listItem.indent >= 6) {
@@ -849,7 +863,7 @@ class UnIndentListItemRequest implements EditRequest {
   final String nodeId;
 }
 
-class UnIndentListItemCommand implements EditCommand {
+class UnIndentListItemCommand extends EditCommand {
   UnIndentListItemCommand({
     required this.nodeId,
   });
@@ -857,8 +871,11 @@ class UnIndentListItemCommand implements EditCommand {
   final String nodeId;
 
   @override
+  HistoryBehavior get historyBehavior => HistoryBehavior.undoable;
+
+  @override
   void execute(EditContext context, CommandExecutor executor) {
-    final document = context.find<MutableDocument>(Editor.documentKey);
+    final document = context.document;
     final node = document.getNodeById(nodeId);
     final listItem = node as ListItemNode;
     if (listItem.indent > 0) {
@@ -891,7 +908,7 @@ class ConvertListItemToParagraphRequest implements EditRequest {
   final Map<String, dynamic>? paragraphMetadata;
 }
 
-class ConvertListItemToParagraphCommand implements EditCommand {
+class ConvertListItemToParagraphCommand extends EditCommand {
   ConvertListItemToParagraphCommand({
     required this.nodeId,
     this.paragraphMetadata,
@@ -901,8 +918,11 @@ class ConvertListItemToParagraphCommand implements EditCommand {
   final Map<String, dynamic>? paragraphMetadata;
 
   @override
+  HistoryBehavior get historyBehavior => HistoryBehavior.undoable;
+
+  @override
   void execute(EditContext context, CommandExecutor executor) {
-    final document = context.find<MutableDocument>(Editor.documentKey);
+    final document = context.document;
     final node = document.getNodeById(nodeId);
     final listItem = node as ListItemNode;
     final newMetadata = Map<String, dynamic>.from(paragraphMetadata ?? {});
@@ -935,7 +955,7 @@ class ConvertParagraphToListItemRequest implements EditRequest {
   final ListItemType type;
 }
 
-class ConvertParagraphToListItemCommand implements EditCommand {
+class ConvertParagraphToListItemCommand extends EditCommand {
   ConvertParagraphToListItemCommand({
     required this.nodeId,
     required this.type,
@@ -945,8 +965,11 @@ class ConvertParagraphToListItemCommand implements EditCommand {
   final ListItemType type;
 
   @override
+  HistoryBehavior get historyBehavior => HistoryBehavior.undoable;
+
+  @override
   void execute(EditContext context, CommandExecutor executor) {
-    final document = context.find<MutableDocument>(Editor.documentKey);
+    final document = context.document;
     final node = document.getNodeById(nodeId);
     final paragraphNode = node as ParagraphNode;
 
@@ -975,7 +998,7 @@ class ChangeListItemTypeRequest implements EditRequest {
   final ListItemType newType;
 }
 
-class ChangeListItemTypeCommand implements EditCommand {
+class ChangeListItemTypeCommand extends EditCommand {
   ChangeListItemTypeCommand({
     required this.nodeId,
     required this.newType,
@@ -985,8 +1008,11 @@ class ChangeListItemTypeCommand implements EditCommand {
   final ListItemType newType;
 
   @override
+  HistoryBehavior get historyBehavior => HistoryBehavior.undoable;
+
+  @override
   void execute(EditContext context, CommandExecutor executor) {
-    final document = context.find<MutableDocument>(Editor.documentKey);
+    final document = context.document;
     final existingListItem = document.getNodeById(nodeId) as ListItemNode;
 
     final newListItemNode = ListItemNode(
@@ -1016,7 +1042,7 @@ class SplitListItemRequest implements EditRequest {
   final String newNodeId;
 }
 
-class SplitListItemCommand implements EditCommand {
+class SplitListItemCommand extends EditCommand {
   SplitListItemCommand({
     required this.nodeId,
     required this.splitPosition,
@@ -1028,8 +1054,11 @@ class SplitListItemCommand implements EditCommand {
   final String newNodeId;
 
   @override
+  HistoryBehavior get historyBehavior => HistoryBehavior.undoable;
+
+  @override
   void execute(EditContext context, CommandExecutor executor) {
-    final document = context.find<MutableDocument>(Editor.documentKey);
+    final document = context.document;
     final composer = context.find<MutableDocumentComposer>(Editor.composerKey);
 
     final node = document.getNodeById(nodeId);

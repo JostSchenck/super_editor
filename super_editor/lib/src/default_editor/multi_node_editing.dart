@@ -22,21 +22,24 @@ class PasteStructuredContentEditorRequest implements EditRequest {
     required this.pastePosition,
   });
 
-  final List<DocumentNode> content;
+  final Document content;
   final DocumentPosition pastePosition;
 }
 
 /// Inserts given structured content, in the form of a `List` of [DocumentNode]s at a
 /// given paste position within the document.
-class PasteStructuredContentEditorCommand implements EditCommand {
+class PasteStructuredContentEditorCommand extends EditCommand {
   PasteStructuredContentEditorCommand({
-    required List<DocumentNode> content,
+    required Document content,
     required DocumentPosition pastePosition,
   })  : _content = content,
         _pastePosition = pastePosition;
 
-  final List<DocumentNode> _content;
+  final Document _content;
   final DocumentPosition _pastePosition;
+
+  @override
+  HistoryBehavior get historyBehavior => HistoryBehavior.undoable;
 
   @override
   void execute(EditContext context, CommandExecutor executor) {
@@ -45,7 +48,7 @@ class PasteStructuredContentEditorCommand implements EditCommand {
       return;
     }
 
-    final document = context.find<MutableDocument>(Editor.documentKey);
+    final document = context.document;
     final composer = context.find<MutableDocumentComposer>(Editor.composerKey);
     final currentNodeWithSelection = document.getNodeById(_pastePosition.nodeId);
     if (currentNodeWithSelection is! TextNode) {
@@ -124,7 +127,7 @@ class PasteStructuredContentEditorCommand implements EditCommand {
   void _pasteMultipleNodes(
     CommandExecutor executor,
     MutableDocument document,
-    List<DocumentNode> pastedNodes,
+    Document pastedNodes,
     TextNode currentNodeWithSelection,
   ) {
     final textNode = document.getNode(_pastePosition) as TextNode;
@@ -285,8 +288,11 @@ class InsertNodeAtIndexCommand extends EditCommand {
   final DocumentNode newNode;
 
   @override
+  String describe() => "Insert node at index $nodeIndex: $newNode";
+
+  @override
   void execute(EditContext context, CommandExecutor executor) {
-    final document = context.find<MutableDocument>(Editor.documentKey);
+    final document = context.document;
     document.insertNodeAt(nodeIndex, newNode);
     executor.logChanges([
       DocumentEdit(
@@ -317,7 +323,7 @@ class InsertNodeBeforeNodeCommand extends EditCommand {
 
   @override
   void execute(EditContext context, CommandExecutor executor) {
-    final document = context.find<MutableDocument>(Editor.documentKey);
+    final document = context.document;
     final existingNode = document.getNodeById(existingNodeId)!;
     document.insertNodeBefore(existingNode: existingNode, newNode: newNode);
 
@@ -350,7 +356,7 @@ class InsertNodeAfterNodeCommand extends EditCommand {
 
   @override
   void execute(EditContext context, CommandExecutor executor) {
-    final document = context.find<MutableDocument>(Editor.documentKey);
+    final document = context.document;
     final existingNode = document.getNodeById(existingNodeId)!;
     document.insertNodeAfter(existingNode: existingNode, newNode: newNode);
 
@@ -379,7 +385,7 @@ class InsertNodeAtCaretCommand extends EditCommand {
 
   @override
   void execute(EditContext context, CommandExecutor executor) {
-    final document = context.find<MutableDocument>(Editor.documentKey);
+    final document = context.document;
     final composer = context.find<MutableDocumentComposer>(Editor.composerKey);
 
     if (composer.selection == null) {
@@ -512,7 +518,7 @@ class MoveNodeCommand extends EditCommand {
 
   @override
   void execute(EditContext context, CommandExecutor executor) {
-    final document = context.find<MutableDocument>(Editor.documentKey);
+    final document = context.document;
 
     // Log all the move changes that will happen when we move the target node
     // elsewhere in the document.
@@ -580,7 +586,7 @@ class ReplaceNodeCommand extends EditCommand {
 
   @override
   void execute(EditContext context, CommandExecutor executor) {
-    final document = context.find<MutableDocument>(Editor.documentKey);
+    final document = context.document;
     final oldNode = document.getNodeById(existingNodeId)!;
     document.replaceNode(oldNode: oldNode, newNode: newNode);
 
@@ -613,7 +619,7 @@ class ReplaceNodeWithEmptyParagraphWithCaretRequest implements EditRequest {
   int get hashCode => nodeId.hashCode;
 }
 
-class ReplaceNodeWithEmptyParagraphWithCaretCommand implements EditCommand {
+class ReplaceNodeWithEmptyParagraphWithCaretCommand extends EditCommand {
   ReplaceNodeWithEmptyParagraphWithCaretCommand({
     required this.nodeId,
   });
@@ -621,8 +627,11 @@ class ReplaceNodeWithEmptyParagraphWithCaretCommand implements EditCommand {
   final String nodeId;
 
   @override
+  HistoryBehavior get historyBehavior => HistoryBehavior.undoable;
+
+  @override
   void execute(EditContext context, CommandExecutor executor) {
-    final document = context.find<MutableDocument>(Editor.documentKey);
+    final document = context.document;
 
     final oldNode = document.getNodeById(nodeId);
     if (oldNode == null) {
@@ -666,7 +675,7 @@ class DeleteContentRequest implements EditRequest {
   final DocumentRange documentRange;
 }
 
-class DeleteContentCommand implements EditCommand {
+class DeleteContentCommand extends EditCommand {
   DeleteContentCommand({
     required this.documentRange,
   });
@@ -674,9 +683,15 @@ class DeleteContentCommand implements EditCommand {
   final DocumentRange documentRange;
 
   @override
+  HistoryBehavior get historyBehavior => HistoryBehavior.undoable;
+
+  @override
+  String describe() => "Delete content within range: $documentRange";
+
+  @override
   void execute(EditContext context, CommandExecutor executor) {
     _log.log('DeleteSelectionCommand', 'DocumentEditor: deleting selection: $documentRange');
-    final document = context.find<MutableDocument>(Editor.documentKey);
+    final document = context.document;
     final nodes = document.getNodesInside(documentRange.start, documentRange.end);
     final normalizedRange = documentRange.normalize(document);
 
@@ -850,7 +865,7 @@ class DeleteContentCommand implements EditCommand {
 
     _log.log('_deleteNodesBetweenFirstAndLast', ' - start node index: $startIndex');
     _log.log('_deleteNodesBetweenFirstAndLast', ' - end node index: $endIndex');
-    _log.log('_deleteNodesBetweenFirstAndLast', ' - initially ${document.nodes.length} nodes');
+    _log.log('_deleteNodesBetweenFirstAndLast', ' - initially ${document.nodeCount} nodes');
 
     // Remove nodes from last to first so that indices don't get
     // screwed up during removal.
@@ -1043,7 +1058,7 @@ class DeleteNodeRequest implements EditRequest {
   final String nodeId;
 }
 
-class DeleteNodeCommand implements EditCommand {
+class DeleteNodeCommand extends EditCommand {
   DeleteNodeCommand({
     required this.nodeId,
   });
@@ -1051,10 +1066,13 @@ class DeleteNodeCommand implements EditCommand {
   final String nodeId;
 
   @override
+  HistoryBehavior get historyBehavior => HistoryBehavior.undoable;
+
+  @override
   void execute(EditContext context, CommandExecutor executor) {
     _log.log('DeleteNodeCommand', 'DocumentEditor: deleting node: $nodeId');
 
-    final document = context.find<MutableDocument>(Editor.documentKey);
+    final document = context.document;
     final node = document.getNodeById(nodeId);
     if (node == null) {
       _log.log('DeleteNodeCommand', 'No such node. Returning.');
