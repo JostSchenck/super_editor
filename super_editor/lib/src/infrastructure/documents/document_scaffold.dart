@@ -117,8 +117,7 @@ class _DocumentScaffoldState extends State<DocumentScaffold> {
     );
   }
 
-  final _contentConstraints =
-      ValueNotifier<BoxConstraints>(const BoxConstraints());
+  final _contentConstraints = ValueNotifier<BoxConstraints>(const BoxConstraints());
 
   /// Builds the widget tree that handles user gesture interaction
   /// with the document, e.g., mouse input on desktop, or touch input
