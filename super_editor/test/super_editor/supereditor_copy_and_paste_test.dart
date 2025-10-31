@@ -93,7 +93,56 @@ This is the third paragraph''');
       expect((doc.getNodeAt(2)! as ParagraphNode).text.toPlainText(), 'This is the third paragraph');
     });
 
-    testAllInputsOnAllPlatforms("paste retains node IDs when replayed during undo", (
+    testAllInputsOnDesktop(
+        'pastes some text in the middle of a paragraph, correctly placing the caret at the end of the pasted text',
+        (
+      tester, {
+      required TextInputSource inputSource,
+    }) async {
+      final testContext = await tester //
+          .createDocument()
+          .withSingleEmptyParagraph()
+          .withInputSource(inputSource)
+          .pump();
+
+      // Place the caret at the empty paragraph.
+      await tester.placeCaretInParagraph('1', 0);
+      
+      // Type some text.
+      switch (inputSource) {
+        case TextInputSource.keyboard:
+          await tester.typeKeyboardText('This is a paragraph');
+        case TextInputSource.ime:
+          await tester.typeImeText('This is a paragraph');
+      }
+      
+      // Place the cursor somewhere in the middle of the text.
+      await tester.placeCaretInParagraph('1', 8);
+
+      // Simulate pasting multiple lines.
+      tester
+        ..simulateClipboard()
+        ..setSimulatedClipboardContent('some content in ');
+      if (defaultTargetPlatform == TargetPlatform.macOS) {
+        await tester.pressCmdV();
+      } else {
+        await tester.pressCtlV();
+      }
+
+      // Ensure the text is correctly pasted and the caret is placed at the
+      // end of the pasted text.
+      final doc = testContext.document;
+      expect(doc.nodeCount, 1);
+      expect((doc.getNodeAt(0)! as ParagraphNode).text.toPlainText(),
+          'This is some content in a paragraph');
+      final selection = testContext.composer.selection;
+      expect(selection, isNotNull);
+      expect(selection!.isCollapsed, isTrue);
+      expect((selection.base.nodePosition as TextNodePosition).offset, 24);
+    });
+
+    testAllInputsOnAllPlatforms(
+        "paste retains node IDs when replayed during undo", (
       tester, {
       required TextInputSource inputSource,
     }) async {
