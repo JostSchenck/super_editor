@@ -33,8 +33,7 @@ void main() {
 
       // Ensure that the text was pasted into the paragraph.
       final nodeId = doc.first.id;
-      expect(SuperEditorInspector.findTextInComponent(nodeId).toPlainText(),
-          "Pasted text: This was pasted here");
+      expect(SuperEditorInspector.findTextInComponent(nodeId).toPlainText(), "Pasted text: This was pasted here");
     });
 
     testWidgetsOnApple('pastes within a list item', (tester) async {
@@ -48,8 +47,7 @@ void main() {
 
       // Place the caret at the end of the list item.
       await tester.placeCaretInParagraph(doc.first.id, 12);
-      await tester.typeImeText(
-          " "); // <- manually add a space because Markdown strips it
+      await tester.typeImeText(" "); // <- manually add a space because Markdown strips it
 
       // Paste text into the paragraph.
       tester
@@ -59,8 +57,7 @@ void main() {
 
       // Ensure that the text was pasted into the paragraph.
       final nodeId = doc.first.id;
-      expect(SuperEditorInspector.findTextInComponent(nodeId).toPlainText(),
-          "Pasted text: This was pasted here");
+      expect(SuperEditorInspector.findTextInComponent(nodeId).toPlainText(), "Pasted text: This was pasted here");
     });
 
     testAllInputsOnDesktop('pastes multiple paragraphs', (
@@ -91,12 +88,9 @@ This is the third paragraph''');
       // Ensure three paragraphs were created.
       final doc = testContext.document;
       expect(doc.nodeCount, 3);
-      expect((doc.getNodeAt(0)! as ParagraphNode).text.toPlainText(),
-          'This is a paragraph');
-      expect((doc.getNodeAt(1)! as ParagraphNode).text.toPlainText(),
-          'This is a second paragraph');
-      expect((doc.getNodeAt(2)! as ParagraphNode).text.toPlainText(),
-          'This is the third paragraph');
+      expect((doc.getNodeAt(0)! as ParagraphNode).text.toPlainText(), 'This is a paragraph');
+      expect((doc.getNodeAt(1)! as ParagraphNode).text.toPlainText(), 'This is a second paragraph');
+      expect((doc.getNodeAt(2)! as ParagraphNode).text.toPlainText(), 'This is the third paragraph');
     });
 
     testAllInputsOnDesktop(
@@ -174,8 +168,7 @@ This is the third paragraph''');
       }
 
       // Gather the current node IDs in the document.
-      final originalNodeIds =
-          testContext.document.toList().map((node) => node.id).toList();
+      final originalNodeIds = testContext.document.toList().map((node) => node.id).toList();
 
       // Pump enough time to separate the next text entry from the paste action.
       await tester.pump(const Duration(seconds: 2));
@@ -193,14 +186,11 @@ This is the third paragraph''');
 
       // Ensure that the node IDs in the document didn't change after re-running
       // the paste command.
-      final newNodeIds =
-          testContext.document.toList().map((node) => node.id).toList();
+      final newNodeIds = testContext.document.toList().map((node) => node.id).toList();
       expect(newNodeIds, originalNodeIds);
     });
 
-    testWidgetsOnMac(
-        "paste command content does not mutate when document changes",
-        (tester) async {
+    testWidgetsOnMac("paste command content does not mutate when document changes", (tester) async {
       final testContext = await tester //
           .createDocument()
           .withSingleEmptyParagraph()
